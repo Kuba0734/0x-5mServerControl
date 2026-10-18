@@ -1,0 +1,42 @@
+{
+  "name": "0x-5mservercontrol",
+  "productName": "0x-5mServerControl",
+  "version": "0.1.1",
+  "description": "Desktop app to control FiveM servers",
+  "main": "dist/main/main.js",
+  "repository": "github:Kuba0734/0x-5mServerControl",
+  "scripts": {
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.ui.json",
+    "start": "npm run build && electron .",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "dist": "npm run build && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "dev.kuba.fivemservercontrol",
+    "directories": {
+      "output": "release"
+    },
+    "artifactName": "0x-5mServerControl-${version}.exe",
+    "files": [
+      "dist/**",
+      "!dist/test/**",
+      "src/ui/**/*.{html,css,woff2}",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  },
+  "dependencies": {
+    "js-yaml": "^5.5.0",
+    "mysql2": "^3.24.6",
+    "ssh2": "^1.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/ssh2": "^1.15.6",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^7.0.2"
+  }
+}

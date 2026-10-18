@@ -1,0 +1,5 @@
+.codegraph
+CLAUDE.md
+node_modules
+dist
+release
