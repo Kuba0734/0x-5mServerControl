@@ -1,0 +1,100 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/inter.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  --bg: #09090b;
+  --bg-glow: radial-gradient(1200px 600px at 80% -10%, rgba(255, 255, 255, 0.06), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(255, 255, 255, 0.04), transparent 60%);
+  --panel: rgba(255, 255, 255, 0.03);
+  --panel-strong: rgba(255, 255, 255, 0.06);
+  --panel-hover: rgba(255, 255, 255, 0.08);
+  --glass: rgba(20, 20, 23, 0.55);
+  --glass-strong: rgba(18, 18, 21, 0.82);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-faint: #6b6b74;
+  --accent: #fafafa;
+  --on-accent: #09090b;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --glow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 24px -8px rgba(255, 255, 255, 0.18);
+  --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  --blur: 24px;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --font: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Consolas', monospace;
+  --text-xs: 11px;
+  --text-sm: 12.5px;
+  --text-md: 13.5px;
+  --text-lg: 16px;
+  --text-xl: 22px;
+  --text-2xl: 32px;
+
+  --sidebar-width: 248px;
+  --titlebar-height: 40px;
+  --console-row: 20px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 300ms;
+  --stagger: 50ms;
+  --toast-duration: 4500ms;
+  --count-duration: 600;
+
+  --c0: #fafafa;
+  --c1: #f87171;
+  --c2: #4ade80;
+  --c3: #facc15;
+  --c4: #60a5fa;
+  --c5: #67e8f9;
+  --c6: #c084fc;
+  --c7: #fafafa;
+  --c8: #dc2626;
+  --c9: #8b8b94;
+
+  --syntax-comment: #6b6b74;
+  --syntax-string: #c4c4cc;
+  --syntax-keyword: #ffffff;
+  --syntax-number: #d4d4d8;
+}
+
+:root[data-motion='off'] {
+  --dur-fast: 0.01ms;
+  --dur: 0.01ms;
+  --dur-slow: 0.01ms;
+  --stagger: 0ms;
+  --count-duration: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur: 0.01ms;
+    --dur-slow: 0.01ms;
+    --stagger: 0ms;
+    --count-duration: 0;
+  }
+}
