@@ -39,6 +39,7 @@ export interface ServerState {
   status: ServerStatus;
   pid?: number;
   startedAt?: number;
+  external?: boolean;
 }
 
 export interface ConsoleLine {

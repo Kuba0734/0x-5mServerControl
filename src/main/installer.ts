@@ -136,13 +136,20 @@ async function runRecipe(recipe: Recipe, root: string, db: DbConfig | undefined,
           break;
         }
         case 'connect_database': {
-          if (!db) throw new Error('This framework needs a database connection');
+          if (!db) {
+            log('Skipped, no database configured');
+            break;
+          }
           conn = await dbConnect(db);
           await conn.query(`CREATE DATABASE IF NOT EXISTS \`${db.database.replace(/`/g, '')}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
           await conn.changeUser({ database: db.database });
           break;
         }
         case 'query_database': {
+          if (!db) {
+            log('Skipped, no database configured');
+            break;
+          }
           if (!conn) throw new Error('Database is not connected');
           await conn.query(task.file ? fs.readFileSync(inside(root, task.file), 'utf8') : String(task.query));
           break;

@@ -47,6 +47,7 @@ function current() {
 }
 
 function statusLabel(state: ServerState) {
+  if (state.external && state.status === 'running') return 'Running externally';
   return { stopped: 'Stopped', running: 'Running', stopping: 'Stopping' }[state.status];
 }
 

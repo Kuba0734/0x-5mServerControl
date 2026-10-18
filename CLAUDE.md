@@ -38,7 +38,7 @@
 - Server-Installation (Wizard):
   - Artifacts herunterladen: Kanal wählbar (Recommended / Latest / bestimmte Build-Nummer)
   - Basis wählbar: bestehende server-data, Vanilla (cfx-server-data), ESX Legacy, QBCore, Qbox
-  - Frameworks: Nutzer gibt MySQL/MariaDB-Verbindung ein (Host, Port, User, Passwort, DB), App testet die Verbindung und importiert die SQL-Dateien; keine eigene Datenbank mitliefern
+  - Frameworks: Nutzer gibt MySQL/MariaDB-Verbindung ein (Host, Port, User, Passwort, DB), App testet die Verbindung und importiert die SQL-Dateien; keine eigene Datenbank mitliefern; Datenbank lässt sich im Setup abschalten (dann kein Import)
   - Erzeugt eine server.cfg mit Lizenz-Key, Hostname, Port
 - Settings: Pfade zu FXServer-Artifacts und server-data, Animationen an/aus, Autostart
 - Validierung vor dem Start: Pfade, FXServer.exe, server.cfg, sv_licenseKey, Port des Profils frei (Standard 30120)
@@ -46,6 +46,7 @@
   - Start: `FXServer.exe +exec server.cfg` im server-data-Ordner
   - Stop: zuerst `quit` über stdin, nach 10 s den Prozessbaum beenden
 - Crash-Erkennung mit Auto-Restart (max. 3 Versuche in 5 min)
+- Extern gestartete Server erkennen (FXServer-Prozess aus dem Artifacts-Ordner des Profils, lokal und remote): Status „Running externally", CPU/RAM, Stop beendet den Prozess; doppelter Start wird blockiert; beim Schließen der App werden sie nicht gestoppt
 - Live-Konsole: stdout/stderr, Befehle über stdin, FiveM-Farbcodes, Suche/Filter, Befehlshistorie, Log-Export
 - Performance-Seite: CPU, RAM, Uptime, Spielerzahl
 - Spielerliste über `players.json`, Kick per Klick

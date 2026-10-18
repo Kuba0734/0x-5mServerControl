@@ -1,6 +1,6 @@
 import type { ArtifactChannel, ArtifactVersions, BaseKind, HostConfig, InstallOptions, Profile, ServerMode } from '../shared/types.js';
 import { api, call, run } from './api.js';
-import { button, field, h, icon, input, modal, segmented, stagger, toast } from './dom.js';
+import { button, field, h, icon, input, modal, segmented, stagger, toast, toggle } from './dom.js';
 import { hostForm } from './host-form.js';
 
 const BASES: [BaseKind, string, string][] = [
@@ -53,7 +53,9 @@ export function openWizard(onDone: (profile: Profile) => void) {
   let step = 0;
   const remote = () => location === 'remote';
   const os = () => (remote() ? host.os : 'windows');
-  const needsDb = () => opts.base !== 'existing' && opts.base !== 'vanilla';
+  let useDb = true;
+  const frameworkDb = () => opts.base !== 'existing' && opts.base !== 'vanilla';
+  const needsDb = () => frameworkDb() && useDb;
   const examples = () =>
     os() === 'linux' ? ['/home/fivem/artifacts', '/home/fivem/server-data'] : remote() ? ['C:/FXServer/artifacts', 'C:/FXServer/server-data'] : ['C:\\FXServer\\artifacts', 'C:\\FXServer\\server-data'];
 
@@ -146,12 +148,18 @@ export function openWizard(onDone: (profile: Profile) => void) {
         } else {
           nodes.push(field('Port', input(opts.port, (v) => (opts.port = Number(v)), { type: 'number' }), 'Only used when server.cfg has no endpoint_add_tcp line.'));
         }
+        if (frameworkDb()) {
+          nodes.push(
+            h('div', { class: 'divider' }),
+            h('h4', {}, 'Database (MySQL / MariaDB)'),
+            toggle(useDb, (value) => ((useDb = value), render()), 'Connect a database and import the framework tables'),
+          );
+          if (!useDb) nodes.push(h('p', { class: 'muted small' }, 'No database is set up. Import the SQL files later and set mysql_connection_string in server.cfg, otherwise the framework will not work.'));
+        }
         if (needsDb()) {
           const db = opts.db!;
           const status = h('span', { class: 'muted small' });
           nodes.push(
-            h('div', { class: 'divider' }),
-            h('h4', {}, 'Database (MySQL / MariaDB)'),
             ...(remote() ? [h('p', { class: 'muted small' }, 'The database is reached through the SSH connection, so 127.0.0.1 means the remote server.')] : []),
             h('div', { class: 'grid-2' }, field('Host', input(db.host, (v) => (db.host = v))), field('Port', input(db.port, (v) => (db.port = Number(v)), { type: 'number' }))),
             h('div', { class: 'grid-2' }, field('User', input(db.user, (v) => (db.user = v))), field('Password', input(db.password, (v) => (db.password = v), { type: 'password' }))),

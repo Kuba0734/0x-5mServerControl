@@ -1,8 +1,9 @@
-import type { ConsoleLine, Player, ServerState, Stats } from '../shared/types';
+import type { ConsoleLine, Player, Profile, ServerState, Stats } from '../shared/types';
 import { stripColors } from '../shared/colors';
 import { broadcast, toast } from './bus';
 import { effectivePort } from './cfg';
 import { remoteFor } from './connections';
+import { ExternalRunner, findExternal } from './external';
 import { createRunner, RemoteRunner, type Runner } from './runners';
 import { getProfile, getProfiles } from './store';
 import { validate } from './validate';
@@ -26,6 +27,8 @@ interface Instance {
   lastCpu?: { value: number; at: number };
   exited?: Promise<void>;
   sampling: boolean;
+  checking: boolean;
+  lastExit: number;
 }
 
 const instances = new Map<string, Instance>();
@@ -45,6 +48,8 @@ function instance(id: string) {
       players: [],
       stats: { cpu: 0, memory: 0, uptime: 0, players: 0 },
       sampling: false,
+      checking: false,
+      lastExit: 0,
     };
     instances.set(id, inst);
   }
@@ -88,12 +93,47 @@ function bind(id: string, inst: Instance, runner: Runner) {
     runner.onExit = (code) => {
       if (inst.runner !== runner) return;
       inst.runner = undefined;
-      setState(inst, { status: 'stopped', pid: undefined, startedAt: undefined });
+      inst.lastExit = Date.now();
+      setState(inst, { status: 'stopped', pid: undefined, startedAt: undefined, external: false });
       broadcast('server:resources', id);
       resolve();
-      if (!inst.stopRequested) onCrash(id, code);
+      if (runner instanceof ExternalRunner) pushLine(inst, 'The external server process has exited');
+      else if (!inst.stopRequested) onCrash(id, code);
     };
   });
+}
+
+function sharesArtifacts(a: Profile, b: Profile) {
+  return a.id !== b.id && a.artifactsPath === b.artifactsPath && a.host?.address === b.host?.address;
+}
+
+async function detectExternal(profile: Profile) {
+  if (getProfiles().some((other) => sharesArtifacts(profile, other) && isRunning(other.id))) return undefined;
+  return (await findExternal(profile))[0];
+}
+
+async function adoptExternal(id: string) {
+  const inst = instance(id);
+  if (inst.runner || inst.starting || inst.checking || Date.now() - inst.lastExit < 15_000) return;
+  inst.checking = true;
+  try {
+    const profile = getProfile(id);
+    const found = await detectExternal(profile);
+    if (!found || inst.runner || inst.starting) return;
+    const runner = new ExternalRunner(profile, found);
+    bind(id, inst, runner);
+    pushLine(inst, `> ${runner.describe()}. Console output and commands are only available for servers started by the app.`);
+    setState(inst, { status: 'running', pid: found.pid, startedAt: found.startedAt, external: true });
+  } catch {
+  } finally {
+    inst.checking = false;
+  }
+}
+
+export function watchExternal() {
+  const scan = () => getProfiles().forEach((p) => adoptExternal(p.id));
+  scan();
+  setInterval(scan, 5000);
 }
 
 export async function start(id: string) {
@@ -102,6 +142,8 @@ export async function start(id: string) {
   inst.starting = true;
   try {
     const profile = getProfile(id);
+    const external = await detectExternal(profile).catch(() => undefined);
+    if (external) throw new Error(`This server is already running outside the app (PID ${external.pid})`);
     const failed = (await validate(profile)).filter((issue) => !issue.ok);
     if (failed.length) throw new Error(failed.map((issue) => issue.label + (issue.detail && issue.label === 'SSH connection' ? `: ${issue.detail}` : '')).join(', ') + ' check failed');
     const runner = createRunner(profile);
@@ -109,7 +151,7 @@ export async function start(id: string) {
     pushLine(inst, `> ${runner.describe()}`);
     try {
       const { pid, startedAt } = await runner.start();
-      setState(inst, { status: 'running', pid, startedAt });
+      setState(inst, { status: 'running', pid, startedAt, external: false });
     } catch (error) {
       inst.runner = undefined;
       throw error;
@@ -128,7 +170,7 @@ export async function attachRemote(id: string) {
   if (!attached) return runner.detach();
   bind(id, inst, runner);
   pushLine(inst, `> Attached to running server (${runner.describe()})`);
-  setState(inst, { status: 'running', pid: attached.pid, startedAt: attached.startedAt });
+  setState(inst, { status: 'running', pid: attached.pid, startedAt: attached.startedAt, external: false });
 }
 
 export function detachRemote(id: string) {
@@ -165,8 +207,9 @@ export async function stop(id: string) {
   if (!runner) return;
   inst.stopRequested = true;
   setState(inst, { status: 'stopping' });
-  await runner.send('quit').catch(() => {});
-  const timer = setTimeout(() => runner.kill().catch(() => {}), STOP_TIMEOUT);
+  const external = runner instanceof ExternalRunner;
+  if (!external) await runner.send('quit').catch(() => {});
+  const timer = setTimeout(() => runner.kill().catch(() => {}), external ? 0 : STOP_TIMEOUT);
   const fallback = setTimeout(() => runner.onExit(null), STOP_TIMEOUT + 15_000);
   await inst.exited;
   clearTimeout(timer);
@@ -210,11 +253,11 @@ export function isRunning(id: string) {
 }
 
 export function localRunning() {
-  return getProfiles().some((p) => !p.host && isRunning(p.id));
+  return getProfiles().some((p) => !p.host && isRunning(p.id) && !instance(p.id).state.external);
 }
 
 export async function stopLocal() {
-  await Promise.all(getProfiles().filter((p) => !p.host).map((p) => stop(p.id)));
+  await Promise.all(getProfiles().filter((p) => !p.host && !instance(p.id).state.external).map((p) => stop(p.id)));
 }
 
 async function fetchPlayers(id: string) {

@@ -197,7 +197,7 @@ export class RemoteRunner implements Runner {
     const state = JSON.parse(await host.readText(host.path.join(dir, 'state.json')).catch(() => '{}'));
     if (!state.pid) return undefined;
     this.pid = state.pid;
-    const samples = await this.samples(host);
+    const samples = await remoteSamples(host);
     if (!samples.has(this.pid)) return undefined;
     const size = (await host.stat(host.path.join(dir, 'console.log')))?.size ?? 0;
     this.offset = Math.max(0, size - 256 * 1024);
@@ -251,19 +251,15 @@ export class RemoteRunner implements Runner {
       await host.exec(`taskkill /PID ${this.pid} /T /F`);
       return;
     }
-    const samples = await this.samples(host);
+    const samples = await remoteSamples(host);
     const ids = [...samples.values()].filter((s) => s.pid !== this.pid && isDescendant(samples, s.pid, this.pid)).map((s) => s.pid);
     await host.exec(`screen -S ${this.session} -X quit; ${ids.length ? `kill -9 ${ids.join(' ')} 2>/dev/null` : 'true'}`);
   }
 
-  private async samples(host: RemoteHost) {
-    if (host.os === 'linux') return parseLinuxStat((await host.exec('cat /proc/[0-9]*/stat 2>/dev/null')).stdout);
-    return parseSamples((await host.ps(windowsSampleCommand)).stdout.split(/\r?\n/));
-  }
 
   async sample() {
     const host = await this.host();
-    const samples = await this.samples(host);
+    const samples = await remoteSamples(host);
     if (!samples.size) return undefined;
     if (!samples.has(this.pid)) {
       await this.tail();
@@ -280,11 +276,16 @@ export class RemoteRunner implements Runner {
   }
 }
 
-function isDescendant(samples: Map<number, { ppid: number }>, pid: number, root: number) {
+export function isDescendant(samples: Map<number, { ppid: number }>, pid: number, root: number) {
   for (let current = samples.get(pid), depth = 0; current && depth < 64; current = samples.get(current.ppid), depth++) if (current.ppid === root) return true;
   return false;
 }
 
 export function createRunner(profile: Profile): Runner {
   return profile.host ? new RemoteRunner(profile) : new LocalRunner(profile);
+}
+
+export async function remoteSamples(host: RemoteHost) {
+  if (host.os === 'linux') return parseLinuxStat((await host.exec('cat /proc/[0-9]*/stat 2>/dev/null')).stdout);
+  return parseSamples((await host.ps(windowsSampleCommand)).stdout.split(/\r?\n/));
 }

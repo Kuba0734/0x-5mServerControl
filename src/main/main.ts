@@ -210,6 +210,7 @@ if (!app.requestSingleInstanceLock()) {
     win!.webContents.once('did-finish-load', async () => {
       const profiles = store.getProfiles();
       await Promise.all(profiles.filter((p) => p.host).map((p) => server.attachRemote(p.id).catch((error) => toast('error', `${p.name}: ${error.message}`))));
+      server.watchExternal();
       for (const profile of profiles.filter((p) => p.autoStart && !server.isRunning(p.id))) server.start(profile.id).catch((error) => toast('error', `${profile.name}: ${error.message}`));
     });
   });
